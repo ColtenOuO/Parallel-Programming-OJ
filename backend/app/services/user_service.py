@@ -14,7 +14,6 @@ class UserService:
             raise ValueError("The user with this student ID already exists.")
 
         user_data = user_in.dict() 
-        
         plain_password = user_data.pop("password")
         user_data["hashed_password"] = get_password_hash(plain_password)
         
