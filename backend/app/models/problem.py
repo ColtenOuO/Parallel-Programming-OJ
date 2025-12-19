@@ -26,6 +26,8 @@ class Problem(Base):
     judge_type = Column(String, default="standard") # standard, special
     judge_script = Column(String, nullable=True)
 
+    submissions = relationship("Submission", back_populates="problem")
+
 
 class TestCase(Base):
 
