@@ -21,11 +21,26 @@ services:
     ports:
       - "${REDIS_PORT}:6379"
 
+  # Slurm Cluster
+  slurm:
+    image: rnzaog/slurm-docker-cluster:latest
+    container_name: slurm_cluster
+    hostname: slurmctl
+    ports:
+      - "2222:22"
+    volumes:
+      - ./oj_data:/data
+    environment:
+      - SLURM_Create_User=yes
+      - SLURM_User=admin
+      - SLURM_Password=admin
+
   # Web Server (FastAPI)
   backend:
     build: .
     volumes:
       - .:/app
+      - ./oj_data:/data
     ports:
       - "8000:8000"
     environment:
@@ -33,23 +48,31 @@ services:
       - REDIS_URL=redis://${REDIS_HOST}:${REDIS_PORT}/0
       - SECRET_KEY=${SECRET_KEY}
       - ALGORITHM=${ALGORITHM}
+      - DATA_DIR=/data
     depends_on:
       - db
       - redis
 
+  # Celery Worker
   worker:
     build: .
     command: watchfiles "celery -A app.core.celery_app worker --loglevel=info"
     volumes:
       - .:/app
+      - ./oj_data:/data
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:${POSTGRES_PORT}/${POSTGRES_DB}
       - REDIS_URL=redis://${REDIS_HOST}:${REDIS_PORT}/0
       - SECRET_KEY=${SECRET_KEY}
       - ALGORITHM=${ALGORITHM}
+      - DATA_DIR=/data
+      - SLURM_HOST=slurm 
+      - SLURM_USER=admin
+      - SLURM_PASSWORD=admin
     depends_on:
       - db
       - redis
+      - slurm
 
 volumes:
   postgres_data:
