@@ -14,8 +14,8 @@ dependencies:
     # Database (ORM & Migration)
     - sqlalchemy
     - alembic
-    - psycopg2-binary   # PostgreSQL driver
-    - asyncpg           # Async PostgreSQL driver
+    - psycopg2-binary
+    - asyncpg
 
     # Data Validation & Settings
     - pydantic
@@ -23,12 +23,13 @@ dependencies:
     - email-validator
 
     # Security
-    - python-jose[cryptography]  # JWT
-    - passlib[bcrypt]            # Password Hashing
+    - python-jose[cryptography]
+    - passlib[bcrypt]
     - bcrypt==4.0.1
 
-    # Redis (for Message Queue)
-    - redis
+    # Async Task Queue
+    - celery[redis]
+    - watchfiles
 
     # Testing
     - pytest
