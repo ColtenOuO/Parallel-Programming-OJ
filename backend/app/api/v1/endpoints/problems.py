@@ -65,7 +65,7 @@ def update_problem(
     db: Session = Depends(deps.get_db),
     problem_id: UUID,
     problem_in: schemas.ProblemUpdate,
-    current_user: User = Depends(deps.get_current_user), # 必須登入
+    current_user: User = Depends(deps.get_current_user),
 ):
     """
     更新題目資訊
@@ -97,3 +97,23 @@ def delete_problem(
         
     problem = crud.problem.delete(db=db, db_obj=problem)
     return problem
+
+@router.get("/{problem_id}/testcases", response_model=List[schemas.TestCase])
+def read_problem_testcases(
+    problem_id: UUID,
+    db: Session = Depends(deps.get_db),
+    skip: int = 0,
+    limit: int = 100,
+    current_user: User = Depends(deps.get_current_user),
+):
+    problem = crud.problem.get_by_id(db, problem_id=problem_id)
+    if not problem:
+        raise HTTPException(status_code=404, detail="Problem not found")
+
+    if not current_user.is_superuser:
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+
+    testcases = crud.testcase.get_multi_by_problem(
+        db, problem_id=problem_id, skip=skip, limit=limit
+    )
+    return testcases

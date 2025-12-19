@@ -5,7 +5,6 @@ from sqlalchemy.orm import relationship
 from app.models.base import Base
 
 class Problem(Base):
-    __tablename__ = "problem"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     
@@ -29,7 +28,6 @@ class Problem(Base):
 
 
 class TestCase(Base):
-    __tablename__ = "test_case"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     problem_id = Column(UUID(as_uuid=True), ForeignKey("problem.id"), nullable=False)
