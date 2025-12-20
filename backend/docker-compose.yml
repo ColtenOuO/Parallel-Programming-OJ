@@ -13,6 +13,20 @@ services:
       - POSTGRES_DB=${POSTGRES_DB}
     ports:
       - "${POSTGRES_PORT}:5432"
+  
+  # for slurm's database
+  mysql:
+    image: mariadb:10.10
+    container_name: mysql
+    hostname: mysql
+    environment:
+      MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+      MYSQL_DATABASE: slurm_acct_db
+      MYSQL_USER: slurm
+      MYSQL_PASSWORD: password
+    volumes:
+      - var_lib_mysql:/var/lib/mysql
+
 
   # Redis
   redis:
@@ -23,7 +37,7 @@ services:
 
   # Slurm Cluster
   slurm:
-    image: rnzaog/slurm-docker-cluster:latest
+    image: giovtorres/slurm-docker-cluster:latest
     container_name: slurm_cluster
     hostname: slurmctl
     ports:
@@ -34,6 +48,8 @@ services:
       - SLURM_Create_User=yes
       - SLURM_User=admin
       - SLURM_Password=admin
+    depends_on:
+      - mysql
 
   # Web Server (FastAPI)
   backend:
@@ -76,3 +92,4 @@ services:
 
 volumes:
   postgres_data:
+  var_lib_mysql:
