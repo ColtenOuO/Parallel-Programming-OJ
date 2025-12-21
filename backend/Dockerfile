@@ -6,7 +6,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends gcc libpq-dev g++ \
+    && apt-get install -y --no-install-recommends gcc libpq-dev g++ ssh sshpass \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

@@ -1,7 +1,6 @@
 version: '3.8'
 
 services:
-  # Database
   db:
     image: postgres:15-alpine
     restart: always
@@ -13,45 +12,13 @@ services:
       - POSTGRES_DB=${POSTGRES_DB}
     ports:
       - "${POSTGRES_PORT}:5432"
-  
-  # for slurm's database
-  mysql:
-    image: mariadb:10.10
-    container_name: mysql
-    hostname: mysql
-    environment:
-      MYSQL_RANDOM_ROOT_PASSWORD: "yes"
-      MYSQL_DATABASE: slurm_acct_db
-      MYSQL_USER: slurm
-      MYSQL_PASSWORD: password
-    volumes:
-      - var_lib_mysql:/var/lib/mysql
 
-
-  # Redis
   redis:
     image: redis:7-alpine
     restart: always
     ports:
       - "${REDIS_PORT}:6379"
 
-  # Slurm Cluster
-  slurm:
-    image: giovtorres/slurm-docker-cluster:latest
-    container_name: slurm_cluster
-    hostname: slurmctl
-    ports:
-      - "2222:22"
-    volumes:
-      - ./oj_data:/data
-    environment:
-      - SLURM_Create_User=yes
-      - SLURM_User=admin
-      - SLURM_Password=admin
-    depends_on:
-      - mysql
-
-  # Web Server (FastAPI)
   backend:
     build: .
     volumes:
@@ -69,7 +36,6 @@ services:
       - db
       - redis
 
-  # Celery Worker
   worker:
     build: .
     command: watchfiles "celery -A app.core.celery_app worker --loglevel=info"
@@ -79,17 +45,85 @@ services:
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:${POSTGRES_PORT}/${POSTGRES_DB}
       - REDIS_URL=redis://${REDIS_HOST}:${REDIS_PORT}/0
-      - SECRET_KEY=${SECRET_KEY}
-      - ALGORITHM=${ALGORITHM}
       - DATA_DIR=/data
-      - SLURM_HOST=slurm 
+      - SLURM_HOST=slurmctld 
       - SLURM_USER=admin
       - SLURM_PASSWORD=admin
     depends_on:
       - db
       - redis
-      - slurm
+      - slurmctld
+
+  mysql:
+    image: mariadb:10.10
+    hostname: mysql
+    container_name: mysql
+    environment:
+      MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+      MYSQL_DATABASE: slurm_acct_db
+      MYSQL_USER: slurm
+      MYSQL_PASSWORD: password
+    volumes:
+      - slurm_mysql_data:/var/lib/mysql
+
+  slurmctld:
+    build:
+      context: .
+      dockerfile: Dockerfile.slurm
+    container_name: slurm_cluster
+    hostname: slurmctld
+    command: ["supervisord", "-c", "/etc/supervisord.conf"]
+    ports:
+      - "2222:22"
+      - "6817:6817"
+      - "6819:6819"
+    volumes:
+      - ./oj_data:/data
+    environment:
+      - SLURM_JWT=daemon
+    shm_size: '2gb'
+    depends_on:
+      - mysql
+  
+  node1:
+    build:
+      context: .
+      dockerfile: Dockerfile.slurm
+    hostname: node1
+    container_name: slurm_node1
+    command: ["supervisord", "-c", "/etc/supervisord_worker.conf"]
+    volumes:
+      - ./oj_data:/data
+    shm_size: '2gb'
+    depends_on:
+      - slurmctld
+
+  node2:
+    build:
+      context: .
+      dockerfile: Dockerfile.slurm
+    hostname: node2
+    container_name: slurm_node2
+    command: ["supervisord", "-c", "/etc/supervisord_worker.conf"]
+    volumes:
+      - ./oj_data:/data
+    shm_size: '2gb'
+    depends_on:
+      - slurmctld
+
+  node3:
+    build:
+      context: .
+      dockerfile: Dockerfile.slurm
+    hostname: node3
+    container_name: slurm_node3
+    command: ["supervisord", "-c", "/etc/supervisord_worker.conf"]
+    volumes:
+      - ./oj_data:/data
+    shm_size: '2gb'
+    depends_on:
+      - slurmctld
 
 volumes:
   postgres_data:
-  var_lib_mysql:
+  slurm_mysql_data:
